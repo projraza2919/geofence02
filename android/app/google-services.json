@@ -9,7 +9,7 @@
       "client_info": {
         "mobilesdk_app_id": "1:1005122182527:android:87125a31761d2b51700e4a",
         "android_client_info": {
-          "package_name": "com.android.application"
+          "package_name": "com.example.geofence"
         }
       },
       "oauth_client": [
@@ -17,7 +17,7 @@
           "client_id": "1005122182527-2i27ep024r6ia21k1na34q0e2t3td7c2.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
-            "package_name": "com.android.application",
+            "package_name": "com.example.geofence",
             "certificate_hash": "80ddb4513e3e5b7d47bd1fb5796c6739719f17a0"
           }
         },
