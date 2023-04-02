@@ -27,6 +27,15 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Geofence',
       theme: ThemeData(
+        // This is the theme of your application.
+        //
+        // Try running your application with "flutter run". You'll see the
+        // application has a blue toolbar. Then, without quitting the app, try
+        // changing the primarySwatch below to Colors.green and then invoke
+        // "hot reload" (press "r" in the console where you ran "flutter run",
+        // or simply save your changes to "hot reload" in a Flutter IDE).
+        // Notice that the counter didn't reset back to zero; the application
+        // is not restarted.
         primarySwatch: Colors.blue,
       ),
       home: const MyHomePage(title: 'Geofence'),
@@ -49,13 +58,13 @@ class _MyHomePageState extends State<MyHomePage> {
   String currentPage='init';
   String previousPage='init';
   String userName='User Name';
+  String verId='';
   String userId='User Id';
   double lat=0.0;
   double long=0.0;
   bool isIn=false;
   bool isSwitched = false;
   var textValue = 'Switch is OFF';
-  String time="";
   TextEditingController number=TextEditingController();
   void toggleSwitch(bool value) {
 
@@ -78,16 +87,16 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   getLoc()async{
+    final prefs = await SharedPreferences.getInstance();
+    final String? lat = prefs.getString('latitude');
+    final String? long = prefs.getString('longitude');
+    final String? radius = prefs.getString('radius');
+
     EasyGeofencing.startGeofenceService(
-        pointedLatitude: '12.9612170',
-        pointedLongitude: '77.6501340',
+        pointedLatitude: lat,
+        pointedLongitude: long,
         //22.546071, 88.287981
-        //22.54889415822827, 88.28767289724146
-        //22.545860199403187, 88.28645759276466
-        radiusMeter: '100',
-        //22.547906864476225, 88.2874014934167
-        //22.39391957960549, 88.40290784110435
-        //12.9258520, 77.7318710
+        radiusMeter: radius,
         eventPeriodInSeconds: 5
     );
   }
@@ -106,17 +115,16 @@ class _MyHomePageState extends State<MyHomePage> {
               isIn=true;
             });
           }
-
           setState(() {
             //stat=status.toString();
           });
         });
-    geofenceStatusStream.resume();
   }
   checkGeo()async{
     var status = await Permission.location.status;
     if(status.isGranted){
       getLoc();
+      login();
     }else{
       await Permission.location.request();
     }
@@ -164,7 +172,30 @@ class _MyHomePageState extends State<MyHomePage> {
           }
         }).onError((error, stackTrace) {
           //TODO do error management
-
+          showDialog<void>(
+            context: context,
+            // barrierDismissible: false, // user must tap button!
+            builder: (BuildContext context) {
+              return AlertDialog(
+                title: const Text('Failed'),
+                content: SingleChildScrollView(
+                  child: ListBody(
+                    children: const <Widget>[
+                      Text('Failed to Connect Server'),
+                    ],
+                  ),
+                ),
+                actions: <Widget>[
+                  TextButton(
+                    child: const Text('cancel'),
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                    },
+                  ),
+                ],
+              );
+            },
+          );
           print(error);
         });
 
@@ -186,6 +217,8 @@ class _MyHomePageState extends State<MyHomePage> {
           //print(doc["first_name"]);
           await prefs.setString('latitude', doc['latitude']);
           await prefs.setString('longitude', doc['longitude']);
+          await prefs.setString('radius', doc['radius']);
+          checkGeo();
         });
       }
     }).onError((error, stackTrace) {
@@ -194,7 +227,7 @@ class _MyHomePageState extends State<MyHomePage> {
       print(error);
     });
 
-    var status = await Permission.location.status;
+    /* var status = await Permission.location.status;
 // You can can also directly ask the permission about its status.
     if (status.isGranted) {
       login();
@@ -235,7 +268,7 @@ class _MyHomePageState extends State<MyHomePage> {
           );
         },
       );
-    }
+    }*/
 
     /*FirebaseFirestore.instance
         .collection('data')
@@ -246,25 +279,34 @@ class _MyHomePageState extends State<MyHomePage> {
   sendOtp(String otp)async{
 
   }
+  getProfile()async{
 
-  @override
-  void initState() {
-    // TODO: implement initState
-    checkGeo();
-    getLoc();
-    setLoc();
-    currentPage='home';
-    super.initState();
+  }
+  timeLoop()async{
+    String time='';
     Timer mytimer = Timer.periodic(Duration(seconds: 5), (timer) {
       DateTime timenow = DateTime.now();  //get current date and time
       time = timenow.hour.toString() + ":" + timenow.minute.toString() + ":" + timenow.second.toString();
       setState(() {
 
       });
-
+      print(time);
       //setLoc();
       //mytimer.cancel() //to terminate this timer
     });
+  }
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    Timer(const Duration(seconds: 5), (){
+      setState(() {
+        showSplash=false;
+        currentPage='login';
+      });
+    }
+    );
+    timeLoop();
   }
 
   @override
@@ -341,7 +383,8 @@ class _MyHomePageState extends State<MyHomePage> {
                         ),
                         Container(
                           width: MediaQuery.of(context).size.width*0.70-55,
-                          child: const TextField (
+                          child: TextField (
+                            controller: number,
                             cursorColor: Color.fromRGBO(28, 179, 189, 0),
                             decoration: InputDecoration(
                                 hintStyle: TextStyle(color: Colors.grey),
@@ -356,7 +399,46 @@ class _MyHomePageState extends State<MyHomePage> {
                 ),
                 SizedBox(height: 10,),
                 InkWell(
-                  onTap: (){
+                  onTap: ()async{
+                    var temp=number.text;
+                    await FirebaseAuth.instance.verifyPhoneNumber(
+                      phoneNumber: '+91'+temp,
+                      verificationCompleted: (PhoneAuthCredential credential) {
+                        setState(() {
+                          currentPage='home';
+                        });
+                      },
+                      verificationFailed: (FirebaseAuthException e) {
+                        showDialog(
+                            context: context,
+                            barrierDismissible: false,
+                            builder: (context) => AlertDialog(
+                              title: Text(e.code),
+                              actions: <Widget>[
+                                TextButton(
+                                    onPressed: (){
+                                      Navigator.of(context).pop();
+                                    }, child: Card(
+                                  color: Colors.blueAccent,
+                                  child: Container(
+                                    margin: const EdgeInsets.all(5),
+                                    child: const Text('Back',style: TextStyle(color: Colors.white),),
+                                  ),
+                                )
+                                )
+                              ],
+                            )
+                        );
+                      },
+                      codeSent: (String verificationId, int? resendToken) {
+                        setState(() {
+                          verId=verificationId;
+                          currentPage='otp';
+                        });
+                      },
+                      timeout: const Duration(seconds: 60),
+                      codeAutoRetrievalTimeout: (String verificationId) {},
+                    );
                     //LogReg
 
                   },
@@ -380,6 +462,7 @@ class _MyHomePageState extends State<MyHomePage> {
         );
       });
     }
+
     if(currentPage=='otp'){
       setState(() {
         showPage=SingleChildScrollView(
@@ -404,8 +487,36 @@ class _MyHomePageState extends State<MyHomePage> {
                     //handle validation or checks here
                   },
                   //runs when every textfield is filled
-                  onSubmit: (String verificationCode){
+                  onSubmit: (String verificationCode)async{
                     //LawyerDocument
+                    FirebaseAuth auth = FirebaseAuth.instance;
+                    PhoneAuthCredential credential = PhoneAuthProvider.credential(verificationId: verId, smsCode: verificationCode);
+                    await auth.signInWithCredential(credential).then((value) {
+                      if(value.user==null){
+                        showDialog(
+                            context: context,
+                            barrierDismissible: false,
+                            builder: (context) => AlertDialog(
+                              title: Text('Failed To Login with Otp'),
+                              actions: <Widget>[
+                                TextButton(
+                                    onPressed: (){
+                                      Navigator.of(context).pop();
+                                    }, child: Card(
+                                  color: Colors.blueAccent,
+                                  child: Container(
+                                    margin: const EdgeInsets.all(5),
+                                    child: const Text('Back',style: TextStyle(color: Colors.white),),
+                                  ),
+                                )
+                                )
+                              ],
+                            )
+                        );
+                      }else{
+                        login();
+                      }
+                    });
 
                   }, // end onSubmit
                 ),

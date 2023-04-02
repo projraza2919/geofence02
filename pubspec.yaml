@@ -41,6 +41,9 @@ dependencies:
   permission_handler: ^10.2.0
   easy_geofencing: ^0.2.0
   shared_preferences: ^2.0.18
+  http: ^0.13.5
+  platform_device_id: ^1.0.1
+  url_launcher: ^6.1.10
 
 
   # The following adds the Cupertino Icons font to your application.
