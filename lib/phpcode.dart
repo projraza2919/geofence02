@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
 import 'package:platform_device_id/platform_device_id.dart';
 import 'package:buttons_tabbar/buttons_tabbar.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -14,6 +15,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
+import 'package:wifi_iot/wifi_iot.dart';
 
 /*void main() async{
   WidgetsFlutterBinding.ensureInitialized();
@@ -41,12 +43,10 @@ class PhpPage extends StatelessWidget {
 
 class MyPhpPage extends StatefulWidget {
   const MyPhpPage({super.key, required this.title,required this.platitude,required this.plongitude,required this.pradius});
-
   final String title;
   final String platitude;
   final String plongitude;
   final String pradius;
-
   @override
   State<MyPhpPage> createState() => _MyPhpPage();
 }
@@ -113,7 +113,9 @@ class _MyPhpPage extends State<MyPhpPage> {
     print(widget.platitude+'-test');
     print(widget.plongitude+'-test');
     EasyGeofencing.startGeofenceService(
+        //pointedLatitude: latString,
         pointedLatitude: latString,
+        //pointedLongitude: longString,
         pointedLongitude: longString,
         //22.546071, 88.287981
         radiusMeter: radiusString,
@@ -123,13 +125,19 @@ class _MyPhpPage extends State<MyPhpPage> {
   }
   setLoc()async{
     //getLoc();
+    BluetoothState _bluetoothState = BluetoothState.UNKNOWN;
     StreamSubscription<GeofenceStatus> geofenceStatusStream = EasyGeofencing.getGeofenceStream()!.listen(
             (GeofenceStatus status) async {
           print(status);
+          deviceId = await PlatformDeviceId.getDeviceId;
           if(status==GeofenceStatus.exit){
             print('exited-67687678');
+
+            var url = Uri.parse("https://thundersmm.com/geofence/api/uninstall_check.php");
+            var response = await http.post(url, body: jsonEncode({'device': deviceId}));
+            print('Response status: ${response.statusCode}');
+            print('Response body: ${response.body}');
             if(isIn==true){
-              deviceId = await PlatformDeviceId.getDeviceId;
               var url = Uri.parse("https://thundersmm.com/geofence/api/update_fence.php");
               var response = await http.post(url, body: jsonEncode({'device': deviceId,'fence':'o'}));
               print('Response status: ${response.statusCode}');
@@ -138,7 +146,6 @@ class _MyPhpPage extends State<MyPhpPage> {
                 isIn=false;
               });
             }
-
           }else{
             print('not exited');
             if(isIn==false){
@@ -151,6 +158,19 @@ class _MyPhpPage extends State<MyPhpPage> {
                 isIn=true;
               });
             }
+            WiFiForIoTPlugin.isEnabled().then((val) async {
+              print(val);
+             await WiFiForIoTPlugin.disconnect;
+              WiFiForIoTPlugin.setEnabled(false);
+            });
+            //await WifiConnector.connectToWifi(ssid: 'ssid', password: 'password');
+            //await WiFiForIoTPlugin.disconnect();
+            //setState(() async{  });
+            //await WiFiForIoTPlugin.findAndConnect('ssid');
+             //WiFiForIoTPlugin.setEnabled(false);
+            //var benable=_bluetoothState.isEnabled;
+            //if (benable)
+            await FlutterBluetoothSerial.instance.requestDisable();
           }
           setState(() {
             //stat=status.toString();

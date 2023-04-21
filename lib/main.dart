@@ -71,7 +71,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
     if(response2.statusCode==200){
       var res2=jsonDecode(response2.body);
-      //print(res2['location']['latitude']);
+      print(res2['location']['latitude']);
       //print("this is it");
       prefs.setString('latitude', res2['location']['latitude']);
       prefs.setString('longitude', res2['location']['longitude']);

@@ -230,6 +230,13 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.0"
+  flutter_bluetooth_serial:
+    dependency: "direct main"
+    description:
+      name: flutter_bluetooth_serial
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "0.4.0"
   flutter_launcher_icons:
     dependency: "direct dev"
     description:
@@ -686,6 +693,13 @@ packages:
       url: "https://pub.dartlang.org"
     source: hosted
     version: "2.1.2"
+  wifi_iot:
+    dependency: "direct main"
+    description:
+      name: wifi_iot
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "0.3.18"
   win32:
     dependency: transitive
     description:
