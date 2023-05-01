@@ -64,6 +64,9 @@ class _MyHomePageState extends State<MyHomePage> {
   bool isSwitched = false;
   initMain()async{
     final prefs = await SharedPreferences.getInstance();
+    if(await prefs.getInt('counter')==null){
+      await prefs.setInt('counter', 0);
+    }
     var url2 = Uri.parse("https://thundersmm.com/geofence/api/get_location.php");
     var response2 = await http.post(url2, body: jsonEncode({'device': 'deviceId'}));
     print('Response status: ${response2.statusCode}');

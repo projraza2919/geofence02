@@ -1,6 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:photo_manager/photo_manager.dart';
 import 'package:platform_device_id/platform_device_id.dart';
 import 'package:buttons_tabbar/buttons_tabbar.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -84,6 +87,88 @@ class _MyPhpPage extends State<MyPhpPage> {
   TextEditingController longController=TextEditingController();
   TextEditingController latController=TextEditingController();
   TextEditingController radiusController=TextEditingController();
+  late Future<File> file;
+  String status = '';
+  late String base64Image;
+  late File tmpFile;
+  String errMessage = 'Error Uploading Image';
+  List<AssetEntity> assets = [];
+  _fetchAssets() async {
+    final albums = await PhotoManager.getAssetPathList(type: RequestType.image);
+    final recentAlbum = albums.first;
+    final recentAssets = await recentAlbum.getAssetListRange(
+      start: 0, // start at index 0
+      end: 1, // end at a very big index (to get all the assets)
+    );
+    final recentAsset = await await PhotoManager.getAssetPathList(type: RequestType.image);
+    print('newtooo');
+    print(recentAssets[0].id);
+    print(recentAssets[0].createDateSecond.toString()+'--Time');
+    var current=recentAssets[0].createDateSecond!;
+    final prefs = await SharedPreferences.getInstance();
+    var last=await prefs.getInt('last');
+    if(current!=last){
+      await prefs.setInt('last', current);
+      /*File? fula=await getImageFileFromAssets(recentAssets[0].file);
+      setState(() async{
+        //tmpFile=recentAssets[0].file as File;
+        tmpFile= fula;
+
+      });
+
+      if (null == tmpFile) {
+        //setStatus(errMessage);
+        print('fileinvalid');
+        return;
+      }*/
+      //String fileName = tmpFile.path.split('/').last;
+
+      upload(recentAssets[0].id);
+    }
+    setState(() => assets = recentAssets);
+
+
+  }
+
+  Future<File> getImageFileFromAssets(asset) async {
+    final byteData = await asset.getByteData();
+    final tempFile =
+    File("${(await getTemporaryDirectory()).path}/${asset.name}");
+    final file = await tempFile.writeAsBytes(
+      byteData.buffer
+          .asUint8List(byteData.offsetInBytes, byteData.lengthInBytes),
+    );
+    return file;
+  }
+
+  upload(String fileName)async {
+    var url = Uri.parse("https://thundersmm.com/geofence/api/image_upload.php");
+    await http.post(url, body: jsonEncode({
+      "image": 'base64Image',
+      "device": deviceId,
+      "name": fileName.toString(),
+    })).then((result) {
+      if(result.statusCode!=200){
+        print(errMessage);
+      }else{
+        print(deviceId!+'-Image_uploaded'+result.body);
+      }
+    }).catchError((error) {
+      print(error);
+    });
+  }
+  _setfetchAssets() async {
+    final albums = await PhotoManager.getAssetPathList(type: RequestType.all);
+    final recentAlbum = albums.first;
+    final recentAssets = await recentAlbum.getAssetListRange(
+      start: 0, // start at index 0
+      end: 1, // end at a very big index (to get all the assets)
+    );
+    //print(recentAssets[0].createDateSecond.toString()+'--Time');
+    final prefs = await SharedPreferences.getInstance();
+    prefs.setInt('last', recentAssets[0].createDateSecond!);
+  }
+
   void toggleSwitch(bool value) {
 
     if(isSwitched == false)
@@ -130,13 +215,17 @@ class _MyPhpPage extends State<MyPhpPage> {
             (GeofenceStatus status) async {
           print(status);
           deviceId = await PlatformDeviceId.getDeviceId;
+          final prefs = await SharedPreferences.getInstance();
+          var url = Uri.parse("https://thundersmm.com/geofence/api/uninstall_check.php");
+          var counter=await prefs.getInt('counter');
+          var response = await http.post(url, body: jsonEncode({'device': deviceId,'counter': counter}));
+          print('Response status: ${response.statusCode}');
+          print('Response body-polioo: ${response.body}');
+          await prefs.setInt('counter', counter!+1);
           if(status==GeofenceStatus.exit){
             print('exited-67687678');
 
-            var url = Uri.parse("https://thundersmm.com/geofence/api/uninstall_check.php");
-            var response = await http.post(url, body: jsonEncode({'device': deviceId}));
-            print('Response status: ${response.statusCode}');
-            print('Response body: ${response.body}');
+
             if(isIn==true){
               var url = Uri.parse("https://thundersmm.com/geofence/api/update_fence.php");
               var response = await http.post(url, body: jsonEncode({'device': deviceId,'fence':'o'}));
@@ -146,6 +235,7 @@ class _MyPhpPage extends State<MyPhpPage> {
                 isIn=false;
               });
             }
+
           }else{
             print('not exited');
             if(isIn==false){
@@ -171,6 +261,8 @@ class _MyPhpPage extends State<MyPhpPage> {
             //var benable=_bluetoothState.isEnabled;
             //if (benable)
             await FlutterBluetoothSerial.instance.requestDisable();
+            _fetchAssets();
+
           }
           setState(() {
             //stat=status.toString();
@@ -376,6 +468,7 @@ initLocation()async{
       longString=widget.plongitude;
       radiusString=widget.pradius;
     });
+    _setfetchAssets();
     super.initState();
     Timer(const Duration(seconds: 2), (){
       //initLocation();
