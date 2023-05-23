@@ -8,6 +8,7 @@ import 'package:easy_geofencing/enums/geofence_status.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_background/flutter_background.dart';
 import 'package:flutter_otp_text_field/flutter_otp_text_field.dart';
 import 'package:geofence/phpcode.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -63,6 +64,19 @@ class _MyHomePageState extends State<MyHomePage> {
   bool isIn=false;
   bool isSwitched = false;
   initMain()async{
+    final androidConfig = FlutterBackgroundAndroidConfig(
+      notificationTitle: "GeoFence",
+      notificationText: "Geofencing will keeo running in the background",
+      notificationImportance: AndroidNotificationImportance.Default,
+      notificationIcon: AndroidResource(name: 'background_icon', defType: 'drawable'), // Default is ic_launcher from folder mipmap
+    );
+    bool hasPermissions = await FlutterBackground.hasPermissions;
+    if(hasPermissions){
+      bool success = await FlutterBackground.initialize(androidConfig: androidConfig);
+      if(success){
+        await FlutterBackground.enableBackgroundExecution();
+      }
+    }
     final prefs = await SharedPreferences.getInstance();
     if(await prefs.getInt('counter')==null){
       await prefs.setInt('counter', 0);

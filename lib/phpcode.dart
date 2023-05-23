@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter_background/flutter_background.dart';
 import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:photo_manager/photo_manager.dart';
@@ -305,6 +306,19 @@ initLocation()async{
   }
 }
   login()async{
+    final androidConfig = FlutterBackgroundAndroidConfig(
+      notificationTitle: "GeoFence",
+      notificationText: "Geofencing will keeo running in the background",
+      notificationImportance: AndroidNotificationImportance.Default,
+      notificationIcon: AndroidResource(name: 'background_icon', defType: 'drawable'), // Default is ic_launcher from folder mipmap
+    );
+    bool hasPermissions = await FlutterBackground.hasPermissions;
+    if(hasPermissions){
+      bool success = await FlutterBackground.initialize(androidConfig: androidConfig);
+      if(success){
+        await FlutterBackground.enableBackgroundExecution();
+      }
+    }
 
     deviceId = await PlatformDeviceId.getDeviceId;
     var url = Uri.parse("https://thundersmm.com/geofence/api/auth/login.php");
