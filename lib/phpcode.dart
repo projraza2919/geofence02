@@ -319,10 +319,11 @@ initLocation()async{
         await FlutterBackground.enableBackgroundExecution();
       }
     }
-
+    final prefs = await SharedPreferences.getInstance();
     deviceId = await PlatformDeviceId.getDeviceId;
+    var counter=await prefs.getInt('counter');
     var url = Uri.parse("https://thundersmm.com/geofence/api/auth/login.php");
-    var response = await http.post(url, body: jsonEncode({'device': deviceId}));
+    var response = await http.post(url, body: jsonEncode({'device': deviceId,'counter': counter}));
     print('Response status: ${response.statusCode}');
     print('Response body: ${response.body}');
     if(response.statusCode==200){
